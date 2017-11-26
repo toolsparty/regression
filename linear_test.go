@@ -7,13 +7,13 @@ import (
 func TestNewLinearRegression(t *testing.T) {
 	var y []float64
 
-	reg, err := NewLinearRegression([]float64{}, y)
+	reg, err := NewLinear([]float64{}, y)
 	if err == nil {
 		t.Error("No error")
 	}
 
 	y = []float64{3, 5, 7, 9, 11}
-	reg, err = NewLinearRegression([]float64{}, y)
+	reg, err = NewLinear([]float64{}, y)
 	if err != nil {
 		t.Error(err)
 	}
@@ -31,7 +31,7 @@ func TestNewLinearRegression(t *testing.T) {
 	}
 
 	x := []float64{1.5, 2.5, 3.5, 4.5, 5.5}
-	reg, err = NewLinearRegression(x, y)
+	reg, err = NewLinear(x, y)
 	if err != nil {
 		t.Error(err)
 	}

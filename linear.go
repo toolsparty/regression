@@ -65,7 +65,7 @@ func (lr Linear) Predict(x Axis) (Axis, error) {
 	return res, nil
 }
 
-func NewLinearRegression(x, y []float64) (*Linear, error) {
+func NewLinear(x, y []float64) (*Linear, error) {
 	nx, ny := len(x), len(y)
 	if ny == 0 {
 		return nil, fmt.Errorf("axis y is empty")

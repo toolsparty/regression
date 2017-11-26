@@ -65,6 +65,10 @@ func (lr Linear) Predict(x Axis) (Axis, error) {
 	return res, nil
 }
 
+func (lr Linear) GetTheta() float64 {
+	return lr.Covariance(lr.X, lr.Y) / math.Sqrt(lr.Dispersion(lr.X) * lr.Dispersion(lr.Y))
+}
+
 func NewLinear(x, y []float64) (*Linear, error) {
 	nx, ny := len(x), len(y)
 	if ny == 0 {

@@ -6,7 +6,12 @@ type Predictor interface {
 	Predict(x Axis) (Axis, error)
 }
 
-type Axis map[int]float64
+type Regression interface {
+	Append(x, y AxEl)
+}
+
+type AxEl float64
+type Axis map[int]AxEl
 
 func (a Axis) Len() float64 {
 	return float64(len(a))
@@ -20,7 +25,7 @@ func (a Axis) Avg() float64 {
 
 	sum := float64(0)
 	for _, val := range a {
-		sum += val
+		sum += float64(val)
 	}
 	return sum / n
 }
@@ -29,10 +34,9 @@ func (a Axis) ToArray() []float64 {
 	arr := make([]float64, len(a))
 	i := 0
 	for _, val := range a {
-		arr[i] = val
+		arr[i] = float64(val)
 		i++
 	}
-	fmt.Println(arr)
 	return arr
 }
 
@@ -45,22 +49,18 @@ func NewAxis(a []float64) (Axis, error) {
 	ax := make(Axis, n)
 	i := 0
 	for _, val := range a {
-		ax[i] = val
+		ax[i] = AxEl(val)
 		i++
 	}
 
 	return ax, nil
 }
 
-type Regression struct {
-	X, Y Axis
-}
-
 func CreateAxis(a Axis) Axis {
 	n := len(a)
 	x := make(Axis, n)
 	for i := 0; i < n; i++ {
-		x[i] = float64(i + 1)
+		x[i] = AxEl(i + 1)
 	}
 	return x
 }

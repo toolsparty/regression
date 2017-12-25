@@ -7,15 +7,17 @@ import (
 // y = b + a/x
 type Hyperbolic struct {
 	Linear
+
+	x, y Axis
 	a, b float64
-	z Axis
+	z    Axis
 }
 
 func (h *Hyperbolic) setZ() {
 	if len(h.z) == 0 {
-		n := len(h.X)
+		n := len(h.x)
 		h.z = make(Axis, n)
-		for i, x := range h.X {
+		for i, x := range h.x {
 			h.z[i] = 1 / x
 		}
 	}
@@ -23,13 +25,13 @@ func (h *Hyperbolic) setZ() {
 
 func (h *Hyperbolic) GetA() float64 {
 	h.setZ()
-	h.a = h.Covariance(h.z, h.Y) / h.Dispersion(h.z)
+	h.a = h.Covariance(h.z, h.y) / h.Dispersion(h.z)
 	return h.a
 }
 
 func (h Hyperbolic) GetB() float64 {
 	h.GetA()
-	h.b = h.Y.Avg() - h.a * h.z.Avg()
+	h.b = h.y.Avg() - h.a*h.z.Avg()
 	return h.b
 }
 
@@ -42,7 +44,7 @@ func (h Hyperbolic) Predict(x Axis) (Axis, error) {
 	a, b := h.GetA(), h.GetB()
 	res := make(Axis, n)
 	for i, val := range x {
-		res[i] = b + a / val
+		res[i] = AxEl(b + a/float64(val))
 	}
 	return res, nil
 }
@@ -67,7 +69,7 @@ func NewHyperbolic(x, y []float64) (*Hyperbolic, error) {
 	}
 
 	reg := &Hyperbolic{}
-	reg.X = aX
-	reg.Y = aY
+	reg.x = aX
+	reg.y = aY
 	return reg, nil
 }

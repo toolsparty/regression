@@ -18,7 +18,7 @@ func TestNewLinearRegression(t *testing.T) {
 		t.Error(err)
 	}
 
-	if int(reg.X.Len()) != len(y) {
+	if int(reg.x.Len()) != len(y) {
 		t.Error("Lengths error")
 	}
 
@@ -36,7 +36,7 @@ func TestNewLinearRegression(t *testing.T) {
 		t.Error(err)
 	}
 
-	if int(reg.X.Len()) != len(y) {
+	if int(reg.x.Len()) != len(y) {
 		t.Error("Lengths error")
 	}
 

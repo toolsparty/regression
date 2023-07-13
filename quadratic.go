@@ -1,102 +1,91 @@
 package regression
 
-import  (
+import (
 	"math"
+
 	"gonum.org/v1/gonum/mat"
-	"fmt"
 )
 
-type Quadratic struct {
-	x, y  Axis
-	a, b, c float64
+type Quadratic[T Number] struct {
+	ax, ay Axis[T]
 }
 
-func (q Quadratic) avgXY() float64 {
-	xy := float64(0)
-	for i := range q.x {
-		xy += float64(q.x[i]) * float64(q.y[i])
+func (r *Quadratic[T]) Append(x, y T) {
+	r.ax = append(r.ax, x)
+	r.ay = append(r.ay, y)
+}
+
+func (r *Quadratic[T]) GetAbc() (a, b, c float64, err error) {
+	const (
+		pow4 = 4
+		pow3 = 3
+		pow2 = 2
+	)
+
+	var (
+		s4, s3, s2        float64
+		sx, sx2y, sxy, sy float64
+		n                 = float64(len(r.ax))
+	)
+
+	for i, x := range r.ax {
+		vx := float64(x)
+		vy := float64(r.ay[i])
+		s4 += math.Pow(vx, pow4)
+		s3 += math.Pow(vx, pow3)
+		s2 += math.Pow(vx, pow2)
+		sx += vx
+		sx2y += math.Pow(vx, pow2) * float64(r.ay[i])
+		sxy += vx * vy
+		sy += vy
 	}
-	return xy / q.x.Len()
-}
 
-func (q Quadratic) xyAvg() float64 {
-	return q.x.Avg() * q.y.Avg()
-}
+	x4 := s4 / n
+	x3 := s3 / n
+	x2 := s2 / n
+	x := sx / n
+	x2y := sx2y / n
+	xy := sxy / n
+	y := sy / n
 
-func (q Quadratic) avgXPow(p float64) float64 {
-	x2 := float64(0)
-	for _, x := range q.x {
-		x2 += math.Pow(float64(x), p)
-	}
-	return x2 / q.x.Len()
-}
-
-func (q Quadratic) avgX2Y() float64 {
-	x2y := float64(0)
-	for i := range q.x {
-		x2y += math.Pow(float64(q.x[i]), 2) * float64(q.y[i])
-	}
-	return x2y / q.x.Len()
-}
-
-func (q *Quadratic) GetAbc() (float64, float64, float64) {
-	x4 := q.avgXPow(4)
-	x3 := q.avgXPow(3)
-	x2 := q.avgXPow(2)
-	x := q.x.Avg()
-	x2y := q.avgX2Y()
-	xy := q.avgXY()
-	y := q.y.Avg()
-
-	A := mat.NewDense(3, 3, []float64{
+	am := mat.NewDense(3, 3, []float64{
 		x4, x3, x2,
 		x3, x2, x,
 		x2, x, 1,
 	})
-	B := mat.NewVecDense(3, []float64{x2y, xy, y})
-	v := mat.NewVecDense(3, []float64{0, 0, 0})
-	v.SolveVec(A, B)
-	q.a = v.RawVector().Data[0]
-	q.b = v.RawVector().Data[1]
-	q.c = v.RawVector().Data[2]
-	return q.a, q.b, q.c
+	bm := mat.NewVecDense(3, []float64{x2y, xy, y})
+	vec := mat.NewVecDense(3, []float64{0, 0, 0})
+
+	_ = vec.SolveVec(am, bm)
+	//if err != nil {
+	//	return a, b, c, fmt.Errorf("solve vector: %w", err)
+	//}
+
+	raw := vec.RawVector()
+	a = raw.Data[0]
+	b = raw.Data[1]
+	c = raw.Data[2]
+
+	return a, b, c, nil
 }
 
-func (q Quadratic) Predict(x Axis) (Axis, error) {
-	n := len(x)
-	if n == 0 {
-		return nil, fmt.Errorf("aX is empty")
+func (r *Quadratic[T]) Predict(x T) (T, error) {
+	a, b, c, err := r.GetAbc()
+	if err != nil {
+		return 0, err
 	}
 
-	a, b, c := q.GetAbc()
-	res := make(Axis, n)
-	for i, val := range x {
-		res[i] = AxEl(a * math.Pow(float64(val), 2) + b * float64(val) + c)
-	}
-	return res, nil
+	return T(a*math.Pow(float64(x), 2) + b*float64(x) + c), nil
 }
 
-func NewQuadratic(x, y []float64) (*Quadratic, error) {
-	nx, ny := len(x), len(y)
-	if ny == 0 {
-		return nil, fmt.Errorf("axis y is empty")
+func NewQuadratic[T Number](x, y []T) (*Quadratic[T], error) {
+	ax, ay, err := newAxes(x, y)
+	if err != nil {
+		return nil, err
 	}
 
-	if nx > 0 && nx != ny {
-		return nil, fmt.Errorf("axes x and y has different lengths")
-	}
-
-	aY, _ := NewAxis(y)
-
-	var aX Axis
-	if nx == 0 {
-		aX = CreateAxis(aY)
-	} else {
-		aX, _ = NewAxis(x)
-	}
-
-	reg := &Quadratic{}
-	reg.x = aX
-	reg.y = aY
-	return reg, nil
+	return &Quadratic[T]{
+		ax: ax,
+		ay: ay,
+	}, nil
 }

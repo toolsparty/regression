@@ -1,75 +1,50 @@
 package regression
 
-import (
-	"fmt"
-)
-
-// y = b + a/x
-type Hyperbolic struct {
-	Linear
-
-	x, y Axis
-	a, b float64
-	z    Axis
+// Hyperbolic y = b + a/x
+type Hyperbolic[T Number] struct {
+	ax, ay Axis[T]
+	az     Axis[float64]
 }
 
-func (h *Hyperbolic) setZ() {
-	if len(h.z) == 0 {
-		n := len(h.x)
-		h.z = make(Axis, n)
-		for i, x := range h.x {
-			h.z[i] = 1 / x
-		}
-	}
+func (r *Hyperbolic[T]) Append(x, y T) {
+	r.ax = append(r.ax, x)
+	r.ay = append(r.ay, y)
+	r.az = append(r.az, 1/float64(x))
 }
 
-func (h *Hyperbolic) GetA() float64 {
-	h.setZ()
-	h.a = h.Covariance(h.z, h.y) / h.Dispersion(h.z)
-	return h.a
+func (r *Hyperbolic[T]) GetA() float64 {
+	ay := make(Axis[float64], len(r.ay))
+
+	for i, y := range r.ay {
+		ay[i] = float64(y)
+	}
+
+	return Covariance(r.az, ay) / Dispersion(r.az)
 }
 
-func (h Hyperbolic) GetB() float64 {
-	h.GetA()
-	h.b = h.y.Avg() - h.a*h.z.Avg()
-	return h.b
+func (r *Hyperbolic[T]) GetB() float64 {
+	return r.ay.Avg() - r.GetA()*r.az.Avg()
 }
 
-func (h Hyperbolic) Predict(x Axis) (Axis, error) {
-	n := len(x)
-	if n == 0 {
-		return nil, fmt.Errorf("aX is empty")
-	}
-
-	a, b := h.GetA(), h.GetB()
-	res := make(Axis, n)
-	for i, val := range x {
-		res[i] = AxEl(b + a/float64(val))
-	}
-	return res, nil
+func (r *Hyperbolic[T]) Predict(x T) (T, error) {
+	return T(r.GetB() + r.GetA()/float64(x)), nil
 }
 
-func NewHyperbolic(x, y []float64) (*Hyperbolic, error) {
-	nx, ny := len(x), len(y)
-	if ny == 0 {
-		return nil, fmt.Errorf("axis y is empty")
+func NewHyperbolic[T Number](x, y []T) (*Hyperbolic[T], error) {
+	ax, ay, err := newAxes(x, y)
+	if err != nil {
+		return nil, err
 	}
 
-	if nx > 0 && nx != ny {
-		return nil, fmt.Errorf("axes x and y has different lengths")
+	az := make(Axis[float64], len(ax))
+
+	for i, vx := range ax {
+		az[i] = 1 / float64(vx)
 	}
 
-	aY, _ := NewAxis(y)
-
-	var aX Axis
-	if nx == 0 {
-		aX = CreateAxis(aY)
-	} else {
-		aX, _ = NewAxis(x)
-	}
-
-	reg := &Hyperbolic{}
-	reg.x = aX
-	reg.y = aY
-	return reg, nil
+	return &Hyperbolic[T]{
+		ax: ax,
+		ay: ay,
+		az: az,
+	}, nil
 }
